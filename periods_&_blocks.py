@@ -19,10 +19,13 @@ import pygame
 FPS = 90
 DATA_FILE = Path(__file__).with_name("elements.json")
 
-BACKGROUND = (0, 0, 0)
-PANEL = (8, 9, 13)
-TEXT = (225, 233, 245)
-MUTED = (137, 154, 179)
+BACKGROUND = (7, 11, 18)
+PANEL = (13, 19, 29)
+SURFACE = (17, 25, 37)
+SURFACE_RAISED = (23, 33, 47)
+OUTLINE = (42, 57, 76)
+TEXT = (232, 239, 248)
+MUTED = (139, 157, 180)
 ACCENT = (78, 207, 232)
 
 BLOCK_COLORS = {
@@ -102,15 +105,15 @@ def is_f_series(element: dict[str, Any]) -> bool:
 
 
 def table_position(element: dict[str, Any]) -> tuple[int, int]:
-    """Place the f-series in periods 6 and 7 instead of detached rows."""
+    """Align the f-series behind group 3 in periods 6 and 7."""
     if is_f_series(element):
-        return element["xpos"], element["period"]
+        return 3, element["period"]
     return element["xpos"], element["ypos"]
 
 
 def element_center(element: dict[str, Any]) -> tuple[float, float, float]:
     column, row = table_position(element)
-    # The series recedes one element at a time: Tm/Yb/Lu and Md/No/Lr.
+    # Keep each series in one column as it recedes behind group 3.
     series_start = 57 if element["period"] == 6 else 89
     depth = -0.7 * (element["number"] - series_start) if is_f_series(element) else 0.0
     return column - 9.5, 5.5 - row, depth
@@ -234,6 +237,7 @@ class PeriodicTableApp:
         self.selected = self.elements[0]
 
         self.font_title = pygame.font.SysFont("segoeui", 30, bold=True)
+        self.font_brand = pygame.font.SysFont("segoeui", 26, bold=True)
         self.font_heading = pygame.font.SysFont("segoeui", 23, bold=True)
         self.font_body = pygame.font.SysFont("segoeui", 17)
         self.font_small = pygame.font.SysFont("segoeui", 15)
@@ -393,26 +397,26 @@ class PeriodicTableApp:
         self.screen.fill(BACKGROUND)
         width, height = self.screen.get_size()
         for x_ratio, y_ratio, radius, brightness in self.stars:
-            color = (brightness, brightness, brightness)
+            color = (brightness // 2, brightness * 2 // 3, brightness)
             pygame.draw.circle(
                 self.screen,
                 color,
                 (round(x_ratio * width), round(y_ratio * height)),
                 radius,
             )
-        pygame.draw.line(self.screen, (34, 36, 42), (22, 75), (width - 22, 75), 1)
+        pygame.draw.line(self.screen, OUTLINE, (22, 75), (width - 22, 75), 1)
 
         mark_rect = pygame.Rect(22, 19, 38, 38)
-        pygame.draw.rect(self.screen, (13, 26, 35), mark_rect, border_radius=11)
-        pygame.draw.rect(self.screen, (30, 114, 126), mark_rect, 1, border_radius=11)
+        pygame.draw.rect(self.screen, (13, 31, 42), mark_rect, border_radius=11)
+        pygame.draw.rect(self.screen, (37, 128, 145), mark_rect, 1, border_radius=11)
         pygame.draw.circle(self.screen, ACCENT, mark_rect.center, 4)
         pygame.draw.ellipse(self.screen, (110, 216, 225), (mark_rect.x + 8, mark_rect.y + 13, 22, 12), 1)
         pygame.draw.ellipse(self.screen, (110, 216, 225), (mark_rect.x + 13, mark_rect.y + 8, 12, 22), 1)
 
-        title = self.font_title.render("PERIODIC TABLE", True, TEXT)
-        self.screen.blit(title, (72, 16))
-        subtitle = self.font_small.render("3D ELEMENT EXPLORER", True, MUTED)
-        self.screen.blit(subtitle, (74, 43))
+        title = self.font_brand.render("PERIODIC TABLE", True, TEXT)
+        self.screen.blit(title, (72, 12))
+        subtitle = self.font_small.render("INTERACTIVE ELEMENT EXPLORER", True, MUTED)
+        self.screen.blit(subtitle, (74, 47))
 
         if width >= 1080:
             status = self.font_small.render(
@@ -423,41 +427,46 @@ class PeriodicTableApp:
             status_rect = status.get_rect(midright=(self.reset_button.left - 18, 38))
             self.screen.blit(status, status_rect)
 
-        pygame.draw.rect(self.screen, (12, 24, 32), self.reset_button, border_radius=10)
-        pygame.draw.rect(self.screen, (34, 83, 98), self.reset_button, 1, border_radius=10)
-        label = self.font_small.render("RESET VIEW   R", True, (173, 225, 230))
+        button_hovered = self.reset_button.collidepoint(pygame.mouse.get_pos())
+        button_fill = (17, 43, 53) if button_hovered else (12, 29, 39)
+        button_outline = ACCENT if button_hovered else (34, 83, 98)
+        pygame.draw.rect(self.screen, button_fill, self.reset_button, border_radius=10)
+        pygame.draw.rect(self.screen, button_outline, self.reset_button, 1, border_radius=10)
+        label = self.font_small.render("RESET VIEW   R", True, (190, 232, 238))
         self.screen.blit(label, label.get_rect(center=self.reset_button.center))
 
         footer = pygame.Rect(20, self.screen.get_height() - 43, width - 40, 27)
-        pygame.draw.rect(self.screen, (7, 9, 13), footer, border_radius=8)
-        pygame.draw.rect(self.screen, (31, 34, 42), footer, 1, border_radius=8)
+        pygame.draw.rect(self.screen, SURFACE, footer, border_radius=8)
+        pygame.draw.rect(self.screen, OUTLINE, footer, 1, border_radius=8)
         control_text = (
-            "DRAG TO ROTATE  ·  WHEEL TO ZOOM  ·  CLICK AN ELEMENT  ·  WHEEL OVER PANEL TO SCROLL  ·  ESC TO QUIT"
+            "DRAG TO ROTATE   ·   WHEEL TO ZOOM   ·   CLICK TO INSPECT"
             if width >= 960
-            else "DRAG TO ROTATE  ·  WHEEL TO ZOOM  ·  CLICK AN ELEMENT  ·  ESC TO QUIT"
+            else "DRAG TO ROTATE   ·   WHEEL TO ZOOM"
         )
         controls = self.font_small.render(control_text, True, (160, 172, 191))
-        self.screen.blit(controls, controls.get_rect(center=footer.center))
+        self.screen.blit(controls, controls.get_rect(midleft=(footer.x + 12, footer.centery)))
+        shortcut_text = self.font_small.render("ESC  QUIT", True, MUTED)
+        self.screen.blit(shortcut_text, shortcut_text.get_rect(midright=(footer.right - 12, footer.centery)))
 
         pygame.draw.rect(
             self.screen,
-            (5, 7, 11),
+            PANEL,
             self.table_rect,
             border_radius=15,
         )
-        pygame.draw.rect(
+        pygame.draw.rect(self.screen, OUTLINE, self.table_rect, 1, border_radius=15)
+        pygame.draw.circle(
             self.screen,
-            (27, 34, 45),
-            self.table_rect,
-            1,
-            border_radius=15,
+            ACCENT,
+            (self.table_rect.x + 17, self.table_rect.y + 19),
+            3,
         )
         section = self.font_small.render(
-            "TABLE VIEW   /   GROUPS 1–18",
+            "3D TABLE   /   GROUPS 1–18",
             True,
-            (148, 163, 184),
+            (171, 190, 211),
         )
-        self.screen.blit(section, (self.table_rect.x + 15, self.table_rect.y + 11))
+        self.screen.blit(section, (self.table_rect.x + 27, self.table_rect.y + 10))
 
     def draw_axis_labels(self) -> None:
         content = self.table_content_rect()
@@ -468,16 +477,22 @@ class PeriodicTableApp:
         for group in range(1, 19):
             x, y = self.project_grid(group, 0.12)
             text = axis_font.render(str(group), True, MUTED)
-            label_rect = text.get_rect(center=(x, y - 13))
-            label_rect.clamp_ip(content)
-            self.screen.blit(text, label_rect)
+            text_rect = text.get_rect(center=(x, y - 13))
+            text_rect.clamp_ip(content)
+            chip_rect = text_rect.inflate(10, 5)
+            chip_rect.clamp_ip(content)
+            pygame.draw.rect(self.screen, SURFACE, chip_rect, border_radius=5)
+            self.screen.blit(text, text_rect)
 
         for row in range(1, 8):
             x, y = self.project_grid(0.05, row)
             text = axis_font.render(str(row), True, MUTED)
-            label_rect = text.get_rect(center=(x - 12, y))
-            label_rect.clamp_ip(content)
-            self.screen.blit(text, label_rect)
+            text_rect = text.get_rect(center=(x - 12, y))
+            text_rect.clamp_ip(content)
+            chip_rect = text_rect.inflate(10, 5)
+            chip_rect.clamp_ip(content)
+            pygame.draw.rect(self.screen, SURFACE, chip_rect, border_radius=5)
+            self.screen.blit(text, text_rect)
 
     def draw_legend(self) -> None:
         x = self.table_rect.left + 15
@@ -492,7 +507,7 @@ class PeriodicTableApp:
             color = BLOCK_COLORS[block]
             chip_width = 46 if compact else 76
             chip = pygame.Rect(x, y - 3, chip_width, 22)
-            pygame.draw.rect(self.screen, (13, 16, 23), chip, border_radius=7)
+            pygame.draw.rect(self.screen, SURFACE_RAISED, chip, border_radius=7)
             pygame.draw.rect(self.screen, shade(color, 0.75), chip, 1, border_radius=7)
             pygame.draw.circle(self.screen, color, (chip.x + 11, chip.centery), 3)
             text = self.font_small.render(label, True, (196, 205, 219))
@@ -537,22 +552,28 @@ class PeriodicTableApp:
                     shade(color, FACE_SHADE[face_name]),
                     polygon,
                 )
-                pygame.draw.polygon(self.screen, (16, 26, 43), polygon, 1)
+                pygame.draw.polygon(self.screen, (10, 17, 28), polygon, 1)
                 if face_name == "front":
                     front_face = polygon
 
             if self.selected is element:
-                pygame.draw.polygon(self.screen, (255, 245, 205), front_face, 2)
+                pygame.draw.polygon(self.screen, TEXT, front_face, 2)
+                pygame.draw.polygon(
+                    self.screen,
+                    shade(color, 1.35),
+                    front_face,
+                    1,
+                )
             if element is getattr(self, "hovered", None):
-                pygame.draw.polygon(self.screen, (255, 255, 255), front_face, 2)
+                pygame.draw.polygon(self.screen, ACCENT, front_face, 2)
 
             center = (
                 round(sum(point[0] for point in front_face) / len(front_face)),
                 round(sum(point[1] for point in front_face) / len(front_face)),
             )
-            symbol = symbol_font.render(element["symbol"], True, (9, 16, 29))
+            symbol = symbol_font.render(element["symbol"], True, (8, 14, 24))
             self.screen.blit(symbol, symbol.get_rect(center=center))
-            number = number_font.render(str(element["number"]), True, (16, 28, 44))
+            number = number_font.render(str(element["number"]), True, (19, 31, 48))
             self.screen.blit(number, (front_face[0][0] + 3, front_face[0][1] + 2))
             self.tile_polygons.append((element, polygon_faces))
 
@@ -644,25 +665,31 @@ class PeriodicTableApp:
         frame_clip = self.screen.get_clip()
         self.screen.set_clip(panel)
         pygame.draw.rect(self.screen, PANEL, panel, border_radius=14)
-        pygame.draw.rect(self.screen, (39, 51, 67), panel, 1, border_radius=14)
+        pygame.draw.rect(self.screen, OUTLINE, panel, 1, border_radius=14)
         element = self.selected
 
         header = pygame.Rect(panel.x, panel.y, panel.width, 132)
-        pygame.draw.rect(self.screen, (15, 16, 20), header, border_radius=14)
+        pygame.draw.rect(self.screen, SURFACE, header, border_radius=14)
         pygame.draw.rect(
             self.screen,
-            (15, 16, 20),
+            SURFACE,
             pygame.Rect(panel.x, panel.y + 14, panel.width, header.height - 14),
         )
         block_color = element_color(element)
+        pygame.draw.rect(
+            self.screen,
+            block_color,
+            pygame.Rect(panel.x + 1, panel.y + 16, 3, 88),
+            border_radius=2,
+        )
         eyebrow = self.font_small.render(
-            f"SELECTED ELEMENT   /   {element['number']:03d}",
+            f"SELECTED ELEMENT  /  {element['number']:03d}",
             True,
             block_color,
         )
         self.screen.blit(eyebrow, (panel.x + 18, panel.y + 14))
         number_badge = pygame.Rect(panel.x + 17, panel.y + 38, 43, 43)
-        pygame.draw.rect(self.screen, (25, 28, 36), number_badge, border_radius=10)
+        pygame.draw.rect(self.screen, (12, 21, 32), number_badge, border_radius=10)
         pygame.draw.rect(self.screen, shade(block_color, 0.7), number_badge, 1, border_radius=10)
         atomic_number = self.font_heading.render(
             str(element["number"]),
@@ -675,10 +702,12 @@ class PeriodicTableApp:
         name = self.font_heading.render(element["name"], True, TEXT)
         self.screen.blit(name, (panel.x + 73, panel.y + 61))
 
-        category = self.font_small.render(
-            element.get("category", "Element").upper(), True, MUTED
-        )
-        self.screen.blit(category, (panel.x + 19, panel.y + 88))
+        category_name = element.get("category", "Element").upper()
+        category = self.font_small.render(category_name, True, MUTED)
+        category_rect = pygame.Rect(panel.x + 17, panel.y + 87, panel.width - 34, 20)
+        self.screen.set_clip(category_rect)
+        self.screen.blit(category, (category_rect.x, category_rect.y))
+        self.screen.set_clip(panel)
         block_label = element_block_label(element)
         period_group = self.font_small.render(
             f"PERIOD {element['period']}   ·   GROUP {element['group']}   ·   {block_label}",
@@ -686,6 +715,13 @@ class PeriodicTableApp:
             MUTED,
         )
         self.screen.blit(period_group, (panel.x + 19, panel.y + 108))
+        pygame.draw.line(
+            self.screen,
+            OUTLINE,
+            (panel.x + 16, panel.y + 132),
+            (panel.right - 16, panel.y + 132),
+            1,
+        )
 
         content_rect = pygame.Rect(
             panel.x + 16,
@@ -693,7 +729,8 @@ class PeriodicTableApp:
             panel.width - 32,
             panel.height - 185,
         )
-        pygame.draw.rect(self.screen, (3, 4, 7), content_rect, border_radius=9)
+        pygame.draw.rect(self.screen, (8, 13, 21), content_rect, border_radius=9)
+        pygame.draw.rect(self.screen, (29, 41, 56), content_rect, 1, border_radius=9)
         desired_atom_height = min(
             250,
             max(112, round(content_rect.height * 0.52)),
@@ -737,15 +774,41 @@ class PeriodicTableApp:
                 value_surface = self.font_body.render(value_line, True, TEXT)
                 self.screen.blit(value_surface, (details_rect.x + 12, row_y))
                 row_y += self.font_body.get_linesize()
-            row_y += 10
+            pygame.draw.line(
+                self.screen,
+                (30, 42, 57),
+                (details_rect.x + 12, row_y + 4),
+                (details_rect.right - 12, row_y + 4),
+                1,
+            )
+            row_y += 12
 
         content_end_y = row_y + self.detail_scroll
         self.max_detail_scroll = max(0, content_end_y - details_rect.bottom + 12)
         self.detail_scroll = min(self.detail_scroll, self.max_detail_scroll)
+        if self.max_detail_scroll:
+            track = pygame.Rect(details_rect.right - 5, details_rect.y + 5, 2, details_rect.height - 10)
+            content_height = content_end_y - rows_start
+            thumb_height = max(
+                24,
+                round(track.height * details_rect.height / content_height),
+            )
+            thumb_y = track.y + round(
+                (track.height - thumb_height)
+                * self.detail_scroll
+                / self.max_detail_scroll
+            )
+            pygame.draw.rect(self.screen, (33, 47, 63), track, border_radius=2)
+            pygame.draw.rect(
+                self.screen,
+                ACCENT,
+                pygame.Rect(track.x - 1, thumb_y, 4, thumb_height),
+                border_radius=2,
+            )
         self.screen.set_clip(panel_clip)
 
         config_label = self.font_small.render(
-            "SCROLL FOR ALL REPORTED ELEMENT DATA", True, MUTED
+            "SCROLL FOR ALL REPORTED DATA", True, MUTED
         )
         self.screen.blit(config_label, (panel.x + 17, panel.bottom - 8 - 15))
         self.screen.set_clip(frame_clip)

@@ -22,11 +22,10 @@ in fullscreen mode; press `Esc` to exit.
 - Press `R` or click **Reset View** to reset the camera; press `Esc` to quit.
 
 The lanthanoid and actinoid series occupy periods 6 and 7 in successive 3D
-depth layers behind the transition-metal (d) block. Each series recedes in
-atomic-number order (for example, Tm in front of Yb in front of Lu, and Md in
-front of No in front of Lr). Lanthanum and actinium mark group 3 at the front
-of their periods. The default camera angle shows the depth ordering; drag to
-rotate the table further.
+depth layers behind group 3. Each series recedes in atomic-number order along a
+straight line (for example, La, Ce, …, Yb, Lu, and Ac, Th, …, No, Lr), rather
+than shifting diagonally across the table. The default camera angle shows the
+depth ordering; drag to rotate the table further.
 
 ## Element data
 
